@@ -1,0 +1,57 @@
+@import "tailwindcss";
+
+@theme {
+  --color-space-dark: #0a0e27;
+  --color-space-deep: #060918;
+  --color-nebula-purple: #1a1145;
+  --color-solar-orange: #ff6b35;
+  --color-plasma-blue: #00d4ff;
+  --color-corona-gold: #ffd700;
+  --color-flare-red: #ff2d55;
+  --color-aurora-green: #00ff88;
+  --color-star-white: #e8e6f0;
+
+  --animate-pulse-slow: pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+:root {
+  --background: var(--color-space-dark);
+  --foreground: var(--color-star-white);
+}
+
+body {
+  background-color: var(--background);
+  color: var(--foreground);
+  color-scheme: dark;
+}
+
+/* Custom scrollbar for deep space feel */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: var(--color-space-deep);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-nebula-purple);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-plasma-blue);
+}
+
+/* Glassmorphism utility */
+.glass-panel {
+  background: rgba(26, 17, 69, 0.4);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(0, 212, 255, 0.1);
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.5);
+}
+
+/* Shimmer animation for alert cards */
+@keyframes shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}

@@ -1,0 +1,104 @@
+SURYA SHIELD AI Intelligent Space Weather Forecasting and Impact
+Assessment Platform
+
+1.  CORE VISION
+
+SuryaShield AI is an AI-powered space weather early warning system built
+using ISRO Aditya-L1 mission data. It combines Soft X-ray observations
+from SoLEXS and Hard X-ray observations from HEL1OS to detect ongoing
+solar flares and predict future flares before they cause disruptions on
+Earth.
+
+Our goal is to transform raw solar X-ray signals into intelligent alerts
+that can protect satellite communication, GPS navigation, radio systems,
+power infrastructure, and future space missions.
+
+2.  PROBLEM WE ARE SOLVING
+
+Solar flares are sudden explosions of energy from the Sun. Strong flares
+can affect modern technology on Earth and in space.
+
+Current detection systems often identify flares after they have already
+started. Our system focuses on two major tasks:
+
+-   Nowcasting: Detecting and classifying solar flares in real time.
+-   Forecasting: Predicting the probability of a flare occurring in the
+    next few minutes.
+
+The challenge is identifying hidden precursor patterns in X-ray data
+before the flare reaches its peak.
+
+3.  WHAT MAKES SURYASHIELD AI DIFFERENT
+
+Most approaches use a single source of data or simple machine learning
+models.
+
+Our innovation: - Multi-modal fusion of SoLEXS and HEL1OS X-ray
+signals. - Advanced time-series AI models such as CNN-LSTM and
+Transformer-based architectures. - Real-time monitoring dashboard. -
+Intelligent risk assessment system. - Visual alerts with confidence
+scores and estimated lead time.
+
+4.  COMPLETE SYSTEM PIPELINE
+
+ISRO Aditya-L1 Data → Data Ingestion and Parsing → Time Synchronization
+→ Noise Filtering → Feature Engineering → AI Prediction Engine → Flare
+Detection & Forecasting → Dashboard and Alert System
+
+5.  TECHNOLOGY STACK
+
+Programming Languages: - Python: AI, data processing, APIs. -
+TypeScript/JavaScript: Frontend development. - SQL: Database queries.
+
+Backend: - FastAPI for APIs. - Python data pipelines.
+
+AI & Data Science: - PyTorch/TensorFlow - Scikit-learn - NumPy -
+Pandas - SciPy - AstroPy
+
+Frontend: - React.js with Next.js - Tailwind CSS - Three.js for 3D solar
+system and space animations - Plotly for real-time X-ray graphs
+
+Theme Design: Dark space theme with: - Animated stars background -
+Rotating Sun model - Planetary orbits - Solar flare animations - Red,
+orange, and blue cosmic color palette
+
+Database: - PostgreSQL with TimescaleDB for time-series storage.
+
+Cloud and Deployment: - Docker - GitHub - AWS/GCP/Vercel
+
+6.  WEB APPLICATION PAGES
+
+Page 1: Landing Page - Space themed introduction. - Mission statement. -
+Live Sun visualization. - About Aditya-L1.
+
+Page 2: Live Solar Dashboard - SoLEXS and HEL1OS real-time X-ray
+curves. - Current solar activity. - Flare alerts and risk level.
+
+Page 3: AI Forecast Center - Probability of flare in 5, 15, and 30
+minutes. - Confidence score. - Explainable AI insights.
+
+Page 4: Historical Analysis - Previous flare database. - Search and
+comparison tools.
+
+Page 5: Impact Assessment Center - Explain possible effects on
+satellites, GPS, aviation, and power systems.
+
+Page 6: Research and Model Information - AI architecture. - Dataset
+details. - Model performance metrics.
+
+7.  HACKATHON MVP
+
+Minimum features: - Data reader for SoLEXS and HEL1OS. - Data
+preprocessing pipeline. - AI model for flare prediction. - Real-time
+dashboard. - Alert system.
+
+Future version: - Global space weather monitoring network. - Satellite
+operator notifications. - Advanced AI with longer prediction windows.
+
+FINAL PITCH
+
+SuryaShield AI is India’s intelligent solar defense platform that
+converts Aditya-L1 observations into actionable space weather
+intelligence. By combining soft and hard X-ray signals with modern AI,
+it provides early warnings of solar storms and helps safeguard critical
+technological infrastructure.

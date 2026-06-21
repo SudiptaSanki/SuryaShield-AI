@@ -1,0 +1,13 @@
+fastapi
+uvicorn
+pydantic
+websockets
+numpy
+pandas
+scipy
+torch
+astropy
+scikit-learn
+sqlalchemy
+python-dotenv
+pydantic-settings
