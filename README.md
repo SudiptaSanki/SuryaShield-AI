@@ -109,8 +109,14 @@ flowchart LR
     style I fill:#00ff88,color:#000
 ```
 
-### How the Live Interpolation Works
-NOAA satellites update their public JSON feeds every 60 seconds. To prevent a "frozen" UI during demonstrations, SuryaShield AI's backend takes the real 60-second data point and streams it out to the frontend via WebSocket every **2 seconds**, applying a microscopic mathematical variance (sine wave) of ~0.5%. This creates a highly realistic, continuously moving live-stream effect that perfectly converges with the actual NOAA data point every minute.
+### 🔌 How the API Works Under the Hood
+
+The FastAPI backend is not just a pass-through; it serves as a sophisticated real-time data engine that powers the entire application:
+
+1. **The Scraper (`noaa_fetcher.py`)**: Runs an asynchronous background task that pings NOAA's official GOES-18 satellites every 60 seconds to download the latest Soft X-Ray and Hard X-Ray telemetry. It also parses recent Space Weather Prediction Center (SWPC) bulletins, strictly filtering out routine summaries and keeping only genuine, actionable warnings (e.g., `ALTK04`, `WARK05`) issued within the last 6 hours.
+2. **The Preprocessor (`preprocessor.py` & `feature_engine.py`)**: Buffers the last 60 minutes of raw telemetry. It applies **Savitzky-Golay filtering** to remove high-frequency instrumental noise, performs Min-Max normalization, and calculates dynamic features like the "Rise Rate" (1st derivative) and "Spectral Hardness Ratio".
+3. **The CNN-LSTM Engine (`inference.py`)**: The 60-minute feature window is fed into a PyTorch deep learning model. The **CNN** layers identify sudden, sharp spikes indicative of a flare onset, while the **Bidirectional LSTM** layers capture slow, long-term evolutionary trends. The attention mechanism weighs the most critical time segments to output final predictions (chance of X/M/C class flares).
+4. **The WebSocket Broadcaster (`realtime.py`)**: Finally, the API packages the raw satellite data, the AI forecast probabilities, and any official SWPC alerts into a single JSON payload. It pushes this payload to connected web clients via WebSockets (`/ws/live`) every **2 seconds**. To prevent the UI from looking "frozen" during the 60 seconds between NOAA updates, the broadcaster applies a microscopic mathematical variance (a ~0.5% sine wave jitter) to the flux numbers, creating a highly realistic, continuously moving live-stream effect that perfectly converges with the actual NOAA data points.
 
 ---
 
