@@ -152,7 +152,7 @@ export default function HistoryPage() {
             />
           </div>
           {/* Class Quick Filter */}
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             {(["ALL", "X", "M", "C", "B"] as ImpactFilter[]).map((c) => (
               <button
                 key={c}

@@ -78,7 +78,7 @@ export default function XRayFluxChart({ data }: { data: SolarData[] }) {
           },
         }}
         useResizeHandler={true}
-        style={{ width: '100%', height: '100%' }}
+        style={{ width: '100%', height: '100%', minHeight: '300px' }}
         config={{ displayModeBar: false, responsive: true }}
       />
     </div>

@@ -53,16 +53,20 @@ export default function ForecastPage() {
           <h2 className="font-orbitron text-lg font-semibold text-star-white mb-4">Model Attention Heatmap</h2>
           <p className="text-sm text-star-white/60 mb-4">Indicates which temporal segments the AI is focusing on for its prediction.</p>
           <div className="flex gap-1 h-32 items-end border-b border-l border-white/10 pb-1 pl-1">
-            {heatmapData.map((val, i) => (
-              <motion.div 
-                key={i}
-                className="flex-1 bg-plasma-blue rounded-t-sm"
-                initial={{ height: 0 }}
-                animate={{ height: `${val * 100}%` }}
-                transition={{ duration: 0.5, delay: i * 0.05 }}
-                style={{ opacity: 0.3 + val * 0.7 }}
-              />
-            ))}
+            {heatmapData.map((val, i) => {
+              const maxVal = Math.max(...heatmapData, 0.001); // avoid division by zero
+              const normalizedHeight = (val / maxVal) * 100;
+              return (
+                <motion.div 
+                  key={i}
+                  className="flex-1 bg-plasma-blue rounded-t-sm"
+                  initial={{ height: 0 }}
+                  animate={{ height: `${normalizedHeight}%` }}
+                  transition={{ duration: 0.5, delay: i * 0.05 }}
+                  style={{ opacity: 0.3 + (val / maxVal) * 0.7 }}
+                />
+              );
+            })}
           </div>
           <div className="flex justify-between text-xs text-star-white/40 mt-2">
             <span>T-60 min</span>

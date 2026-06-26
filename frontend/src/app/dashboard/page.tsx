@@ -43,7 +43,7 @@ export default function DashboardPage() {
               Source: GOES-18 Satellite ↗
             </a>
           </div>
-          <div className="h-[400px] flex-1">
+          <div className="min-h-[300px] md:h-[400px] flex-1 w-full">
             <XRayFluxChart data={dataHistory} />
           </div>
         </div>
