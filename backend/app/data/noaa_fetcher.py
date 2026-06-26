@@ -5,28 +5,25 @@ from typing import Dict, Any, List
 
 NOAA_XRAY_URL = "https://services.swpc.noaa.gov/json/goes/primary/xrays-1-day.json"
 NOAA_ALERTS_URL = "https://services.swpc.noaa.gov/products/alerts.json"
+NOAA_PLASMA_URL = "https://services.swpc.noaa.gov/products/solar-wind/plasma-1-day.json"
+NOAA_MAG_URL = "https://services.swpc.noaa.gov/products/solar-wind/mag-1-day.json"
 
-# NOAA SWPC product IDs that represent genuine active warnings/alerts.
-# See: https://www.swpc.noaa.gov/products-and-data
-# We exclude routine summaries (SUMSUD, SRS, FLC), forecasts (OFFPNT, FXXX),
-# and watch products — we only show WARNINGS and ALERTS.
 ACTIONABLE_PRODUCT_IDS = {
-    # Space Weather ALERTS (most severe — immediate impact)
-    "ALTK04", "ALTK05", "ALTK06", "ALTK07", "ALTK08", "ALTK09",  # Kp >= 4
-    "ALTXMF", "ALTEF3",  # X-ray event, Electron flux
-    "ALTTP2", "ALTTP4", "ALTTP5",  # Proton events
-    # Space Weather WARNINGS (active expected conditions)
-    "WARK04", "WARK05", "WARK06", "WARK07", "WARK08", "WARK09",  # Geomagnetic storm warning
-    "WARPC0",  # Proton crossing warning
-    "WARSUD",  # Sudden impulse warning
-    "WATA20", "WATA50", "WATA99",  # Geomagnetic storm watch
+    "ALTK04", "ALTK05", "ALTK06", "ALTK07", "ALTK08", "ALTK09",
+    "ALTXMF", "ALTEF3",
+    "ALTTP2", "ALTTP4", "ALTTP5",
+    "WARK04", "WARK05", "WARK06", "WARK07", "WARK08", "WARK09",
+    "WARPC0",
+    "WARSUD",
+    "WATA20", "WATA50", "WATA99",
 }
-
 
 class NOAAFetcher:
     def __init__(self):
         self.cached_xray_data: List[Dict[str, Any]] = []
         self.cached_alerts: List[Dict[str, Any]] = []
+        self.cached_plasma: List[List[str]] = []
+        self.cached_mag: List[List[str]] = []
         self.last_fetch_time = None
         self._lock = asyncio.Lock()
         self.is_running = False
@@ -48,9 +45,23 @@ class NOAAFetcher:
                     alerts_data = alerts_resp.json()
                     async with self._lock:
                         self.cached_alerts = alerts_data
+
+                # Fetch plasma
+                plasma_resp = await client.get(NOAA_PLASMA_URL, timeout=10.0)
+                if plasma_resp.status_code == 200:
+                    plasma_data = plasma_resp.json()
+                    async with self._lock:
+                        self.cached_plasma = plasma_data
+
+                # Fetch mag
+                mag_resp = await client.get(NOAA_MAG_URL, timeout=10.0)
+                if mag_resp.status_code == 200:
+                    mag_data = mag_resp.json()
+                    async with self._lock:
+                        self.cached_mag = mag_data
                         
                 self.last_fetch_time = datetime.utcnow()
-                print(f"[{datetime.utcnow().isoformat()}] Successfully fetched NOAA data.")
+                print(f"[{datetime.utcnow().isoformat()}] Successfully fetched NOAA data including solar wind.")
             except Exception as e:
                 print(f"Error fetching NOAA data: {e}")
 
@@ -65,30 +76,22 @@ class NOAAFetcher:
         self.is_running = False
 
     def _parse_noaa_alert(self, raw_alert: Dict[str, Any]):
-        """
-        Parse a single NOAA SWPC alert object into our Alert format.
-        Returns None if the alert is not actionable (routine summary, old, etc).
-        """
         product_id = raw_alert.get('product_id', '')
         message_text = raw_alert.get('message', '')
         
-        # --- Filter 1: Only actionable product IDs ---
         if product_id not in ACTIONABLE_PRODUCT_IDS:
             return None
             
-        # --- Filter 2: Must be recent (within the last 6 hours) ---
         try:
             issue_time = datetime.strptime(
                 raw_alert.get('issue_datetime', ''), '%Y-%m-%d %H:%M:%S.%f'
             )
             age_seconds = (datetime.utcnow() - issue_time).total_seconds()
-            if age_seconds > 6 * 3600:  # 6 hours
+            if age_seconds > 6 * 3600:
                 return None
         except (ValueError, TypeError):
             return None
 
-        # --- Determine severity from the NOAA product naming convention ---
-        # Product IDs starting with "ALT" = ALERT (immediate), "WAR" = WARNING, "WAT" = WATCH
         severity = "LOW"
         if product_id.startswith("ALT"):
             severity = "HIGH"
@@ -97,26 +100,21 @@ class NOAAFetcher:
         elif product_id.startswith("WAT"):
             severity = "LOW"
             
-        # Escalate to EXTREME if the message explicitly says so or if it's a very high Kp
         if "EXTREME" in message_text.upper():
             severity = "EXTREME"
         if product_id in {"ALTK08", "ALTK09"}:
             severity = "EXTREME"
 
-        # --- Extract the first meaningful line of the message as the title ---
         message_lines = [l.strip() for l in message_text.split('\n') if l.strip()]
         title = "Space Weather Event Detected"
         for line in message_lines:
-            # Skip header lines like "Space Weather Message Code: ..."
             if line.startswith("Space Weather Message Code"):
                 title = f"Space Weather Message Code: {product_id}"
                 continue
-            # Use the first substantive line as the alert title
             if len(line) > 10 and not line.startswith("Issue Time") and not line.startswith("Serial Number"):
                 title = line
                 break
 
-        # --- Extract recommended action ---
         action = "Monitor NOAA SWPC for updates."
         for line in message_lines:
             if "potential impacts" in line.lower():
@@ -128,7 +126,7 @@ class NOAAFetcher:
             "id": product_id,
             "timestamp": raw_alert.get('issue_datetime', ''),
             "severity": severity,
-            "predicted_class": "M",  # Inferred from NOAA context
+            "predicted_class": "M",
             "lead_time_minutes": 0,
             "message": title,
             "recommended_action": action
@@ -138,15 +136,9 @@ class NOAAFetcher:
         async with self._lock:
             if not self.cached_xray_data:
                 return None
-                
-            # NOAA gives two energy bands per minute. 
-            # "0.1-0.8nm" = Soft X-ray (SoLEXS equivalent)
-            # "0.05-0.4nm" = Hard X-ray (HEL1OS equivalent)
             
-            # Get the very last timestamp
             latest_time = self.cached_xray_data[-1]['time_tag']
             
-            # Find the soft and hard flux for this time
             soft_flux = 1e-8
             hard_flux = 1e-9
             
@@ -157,20 +149,65 @@ class NOAAFetcher:
                     elif item['energy'] == '0.05-0.4nm':
                         hard_flux = item['flux']
             
-            # Find the most recent *actionable* alert
             active_alert = None
             if self.cached_alerts:
                 for raw_alert in self.cached_alerts:
                     parsed = self._parse_noaa_alert(raw_alert)
                     if parsed:
                         active_alert = parsed
-                        break  # Use the first (most recent) actionable alert
+                        break
+
+            # Parse latest solar wind plasma
+            # NOAA format: ["time_tag", "density", "speed", "temperature"]
+            solar_wind_speed = 400.0
+            solar_wind_density = 5.0
+            if self.cached_plasma and len(self.cached_plasma) > 1:
+                try:
+                    # Skip header row (index 0)
+                    latest_plasma = self.cached_plasma[-1]
+                    solar_wind_density = float(latest_plasma[1]) if latest_plasma[1] else 5.0
+                    solar_wind_speed = float(latest_plasma[2]) if latest_plasma[2] else 400.0
+                except (ValueError, IndexError):
+                    pass
+
+            # Parse latest solar wind mag
+            # NOAA format: ["time_tag", "bx_gsm", "by_gsm", "bz_gsm", "lon_gsm", "lat_gsm", "bt"]
+            bt = 5.0
+            bz = 0.0
+            if self.cached_mag and len(self.cached_mag) > 1:
+                try:
+                    latest_mag = self.cached_mag[-1]
+                    bz = float(latest_mag[3]) if latest_mag[3] else 0.0
+                    bt = float(latest_mag[6]) if latest_mag[6] else 5.0
+                except (ValueError, IndexError):
+                    pass
+
+            # Derive an AI Prediction Overview Scale (0-10)
+            # This is a simple heuristic based on X-ray flux, Bz, and solar wind speed
+            ai_scale = 1.0
+            if soft_flux > 1e-4:  # X class
+                ai_scale = 9.0
+            elif soft_flux > 1e-5:  # M class
+                ai_scale = 6.0
+            elif soft_flux > 1e-6:  # C class
+                ai_scale = 3.0
             
+            # Increase scale if Bz is strongly negative and wind is fast
+            if bz < -5 and solar_wind_speed > 500:
+                ai_scale += 2.0
+            
+            ai_scale = min(10.0, round(ai_scale, 1))
+
             return {
                 "timestamp": latest_time,
                 "solexs_flux": soft_flux,
                 "helios_flux": hard_flux,
-                "alert": active_alert
+                "alert": active_alert,
+                "solar_wind_speed": solar_wind_speed,
+                "solar_wind_density": solar_wind_density,
+                "bt": bt,
+                "bz": bz,
+                "ai_scale": ai_scale
             }
 
 noaa_fetcher = NOAAFetcher()

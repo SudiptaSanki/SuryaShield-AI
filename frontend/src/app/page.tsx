@@ -7,14 +7,6 @@ import { Activity, BrainCircuit, BarChart2, ShieldCheck, Bell, ArrowRight } from
 export default function Home() {
   return (
     <div className="relative min-h-screen flex flex-col items-center justify-center pt-24 pb-12 px-6">
-      {/* Background Image */}
-      <div 
-        className="fixed inset-0 z-[-1] bg-cover bg-center bg-no-repeat"
-        style={{ backgroundImage: "url('/landing_bg.png')" }}
-      >
-        <div className="absolute inset-0 bg-black/40"></div>
-      </div>
-
       {/* Floating L1 Text (Right) — desktop only */}
       <div className="hidden lg:block absolute right-24 top-1/3 text-right">
         <h3 className="text-4xl font-light text-white tracking-widest font-orbitron">L1</h3>

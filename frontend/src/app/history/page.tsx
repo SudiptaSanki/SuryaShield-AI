@@ -103,19 +103,19 @@ export default function HistoryPage() {
 
       {/* Stats Row */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-        <div className="glass-panel rounded-xl p-4 text-center">
+        <div className="glass-panel glow-panel rounded-xl p-4 text-center">
           <div className="text-2xl font-mono font-bold text-star-white">{events.length}</div>
           <div className="text-xs text-star-white/50 uppercase tracking-wider mt-1">Total Events (7d)</div>
         </div>
-        <div className="glass-panel rounded-xl p-4 text-center cursor-pointer hover:border-red-500/30 transition-colors" onClick={() => setClassFilter(classFilter === "X" ? "ALL" : "X")}>
+        <div className="glass-panel rounded-xl p-4 text-center cursor-pointer hover:glow-panel transition-all" onClick={() => setClassFilter(classFilter === "X" ? "ALL" : "X")}>
           <div className="text-2xl font-mono font-bold text-flare-red">{xCount}</div>
           <div className="text-xs text-star-white/50 uppercase tracking-wider mt-1">X-Class Flares</div>
         </div>
-        <div className="glass-panel rounded-xl p-4 text-center cursor-pointer hover:border-orange-500/30 transition-colors" onClick={() => setClassFilter(classFilter === "M" ? "ALL" : "M")}>
+        <div className="glass-panel rounded-xl p-4 text-center cursor-pointer hover:glow-panel transition-all" onClick={() => setClassFilter(classFilter === "M" ? "ALL" : "M")}>
           <div className="text-2xl font-mono font-bold text-solar-orange">{mCount}</div>
           <div className="text-xs text-star-white/50 uppercase tracking-wider mt-1">M-Class Flares</div>
         </div>
-        <div className="glass-panel rounded-xl p-4 text-center cursor-pointer hover:border-yellow-500/30 transition-colors" onClick={() => setClassFilter(classFilter === "C" ? "ALL" : "C")}>
+        <div className="glass-panel rounded-xl p-4 text-center cursor-pointer hover:glow-panel transition-all" onClick={() => setClassFilter(classFilter === "C" ? "ALL" : "C")}>
           <div className="text-2xl font-mono font-bold text-corona-gold">{cCount}</div>
           <div className="text-xs text-star-white/50 uppercase tracking-wider mt-1">C-Class Flares</div>
         </div>

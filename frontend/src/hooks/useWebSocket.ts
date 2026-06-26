@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 
 // For local dev, assume backend runs on 8000
-const WS_URL = 'ws://localhost:8000/ws/live';
+const WS_URL = process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:8000/ws/live';
 
 export type FlareClass = 'A' | 'B' | 'C' | 'M' | 'X';
 
@@ -38,6 +38,13 @@ export interface SolarData {
     level: string;
   };
   alert: Alert | null;
+  solar_wind: {
+    speed: number;
+    density: number;
+    bt: number;
+    bz: number;
+  };
+  ai_scale: number;
 }
 
 export function useWebSocket() {

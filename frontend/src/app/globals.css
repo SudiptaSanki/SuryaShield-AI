@@ -43,11 +43,16 @@ body {
 
 /* Glassmorphism utility */
 .glass-panel {
-  background: rgba(26, 17, 69, 0.4);
+  background: rgba(13, 14, 26, 0.7);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(0, 212, 255, 0.1);
-  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(30, 34, 53, 0.85);
+  border-radius: 1rem;
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.4);
+}
+
+.glow-panel {
+  box-shadow: 0 0 20px rgba(0, 212, 255, 0.15);
 }
 
 /* Shimmer animation for alert cards */

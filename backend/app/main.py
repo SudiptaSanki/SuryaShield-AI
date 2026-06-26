@@ -11,6 +11,9 @@ from .api import realtime, forecast, history
 async def lifespan(app: FastAPI):
     # Start the NOAA background fetcher
     asyncio.create_task(noaa_fetcher.start_polling(interval_seconds=60))
+    # Start the LLM forecaster background refresh
+    from .services.llm_forecaster import auto_refresh_forecast_loop
+    asyncio.create_task(auto_refresh_forecast_loop())
     yield
     # Stop the fetcher on shutdown
     noaa_fetcher.stop_polling()

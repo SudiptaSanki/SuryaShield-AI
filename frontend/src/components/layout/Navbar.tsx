@@ -11,7 +11,6 @@ const navLinks = [
   { href: "/forecast", icon: <Clock size={16} />, text: "AI Forecast" },
   { href: "/history", icon: <FileText size={16} />, text: "History" },
   { href: "/impact", icon: <Shield size={16} />, text: "Impact" },
-  { href: "/sun", icon: <Orbit size={16} />, text: "3D Sun" },
   { href: "/research", icon: <Info size={16} />, text: "Research" },
 ];
 

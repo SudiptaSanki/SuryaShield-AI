@@ -1,7 +1,7 @@
 "use client";
 
 import { SolarData } from "@/hooks/useWebSocket";
-import { TrendingUp, Zap, Thermometer, ShieldAlert } from "lucide-react";
+import { TrendingUp, Zap, Thermometer, ShieldAlert, Activity, Waves, Magnet, Brain } from "lucide-react";
 
 export default function SolarStats({ latestData, history }: { latestData: SolarData | null, history: SolarData[] }) {
   
@@ -52,6 +52,32 @@ export default function SolarStats({ latestData, history }: { latestData: SolarD
         title="Alert Status"
         value={latestData?.alert ? "ACTIVE WARNING" : "CLEAR"}
         subtext={latestData?.alert ? `Lead time: ${latestData.alert.lead_time_minutes} min` : "No threats detected"}
+      />
+      
+      {/* New Rows for Solar Wind Data */}
+      <StatCard 
+        icon={<Activity className="text-plasma-blue" />}
+        title="Solar Wind Speed"
+        value={`${latestData?.solar_wind?.speed.toFixed(1) || "400.0"} km/s`}
+        subtext={latestData?.solar_wind?.speed && latestData.solar_wind.speed > 500 ? '<span class="text-solar-orange">Elevated Speed</span>' : '<span class="text-aurora-green">Normal Flow</span>'}
+      />
+      <StatCard 
+        icon={<Waves className="text-corona-gold" />}
+        title="Proton Density"
+        value={`${latestData?.solar_wind?.density.toFixed(1) || "5.0"} p/cm³`}
+        subtext="Solar Wind Plasma Density"
+      />
+      <StatCard 
+        icon={<Magnet className="text-purple-400" />}
+        title="Magnetic Field"
+        value={`Bt: ${latestData?.solar_wind?.bt.toFixed(1) || "5.0"} nT`}
+        subtext={`Bz: ${latestData?.solar_wind?.bz.toFixed(1) || "0.0"} nT`}
+      />
+      <StatCard 
+        icon={<Brain className="text-pink-400" />}
+        title="AI Prediction Scale"
+        value={`${latestData?.ai_scale?.toFixed(1) || "1.0"} / 10`}
+        subtext="Composite Risk Heuristic"
       />
     </div>
   );

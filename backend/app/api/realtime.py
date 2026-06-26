@@ -100,7 +100,14 @@ async def websocket_endpoint(websocket: WebSocket):
                     "score": risk_score,
                     "level": get_risk_level(risk_score)
                 },
-                "alert": final_alert
+                "alert": final_alert,
+                "solar_wind": {
+                    "speed": data_point.get('solar_wind_speed', 400.0),
+                    "density": data_point.get('solar_wind_density', 5.0),
+                    "bt": data_point.get('bt', 5.0),
+                    "bz": data_point.get('bz', 0.0)
+                },
+                "ai_scale": data_point.get('ai_scale', 1.0)
             }
             
             await manager.broadcast(json.dumps(payload))

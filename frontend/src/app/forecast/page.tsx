@@ -1,134 +1,176 @@
 "use client";
 
-import { useWebSocket } from "@/hooks/useWebSocket";
-import { BrainCircuit, Clock, Zap } from "lucide-react";
+import { useState, useEffect } from "react";
+import { BrainCircuit, Orbit, Zap, TrendingUp, AlertTriangle, RefreshCw } from "lucide-react";
 import { motion } from "framer-motion";
+import SunScene from "@/components/three/SunScene";
+
+const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8000";
+
+interface HourlyForecast {
+  hour: number;
+  predicted_flux: string;
+  flare_probability_percent: number;
+  class_risk: string;
+}
+
+interface LLMForecast {
+  summary: string;
+  hourly_forecast: HourlyForecast[];
+}
 
 export default function ForecastPage() {
-  const { latestData } = useWebSocket();
+  const [forecast, setForecast] = useState<LLMForecast | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const heatmapData = latestData?.forecast.attention_weights || Array.from({ length: 15 }, () => 0.1);
+  const fetchForecast = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const resp = await fetch(`${BACKEND_URL}/api/v1/forecast/12hr`);
+      if (!resp.ok) throw new Error("Failed to fetch LLM forecast");
+      const data = await resp.json();
+      setForecast(data);
+    } catch (e: any) {
+      setError(e.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchForecast();
+  }, []);
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 relative z-10">
-      <div className="mb-8">
-        <h1 className="font-orbitron text-3xl font-bold text-star-white flex items-center gap-3">
-          <BrainCircuit className="text-plasma-blue" /> AI Forecast Center
-        </h1>
-        <p className="text-star-white/60 mt-1">Deep Learning Predictions from CNN-LSTM Engine</p>
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 relative z-10 min-h-screen flex flex-col">
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between mb-8 gap-4">
+        <div>
+          <h1 className="font-orbitron text-3xl font-bold text-star-white flex items-center gap-3">
+            <BrainCircuit className="text-plasma-blue" /> Solar Forecast Center
+          </h1>
+          <p className="text-star-white/60 mt-1">12-Hour Predictive Modeling via Groq LLM & Gemini</p>
+        </div>
+        <button
+          onClick={fetchForecast}
+          disabled={loading}
+          className="flex items-center gap-2 px-4 py-2 rounded-lg bg-plasma-blue/10 border border-plasma-blue/30 text-plasma-blue hover:bg-plasma-blue/20 transition-all text-sm disabled:opacity-50"
+        >
+          <RefreshCw size={14} className={loading ? "animate-spin" : ""} />
+          {loading ? "Generating..." : "Refresh Forecast"}
+        </button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <PredictionCard 
-          time="5 Minutes" 
-          prob={latestData?.forecast.probabilities["5_min"] || 0} 
-          delay={0}
-        />
-        <PredictionCard 
-          time="15 Minutes" 
-          prob={latestData?.forecast.probabilities["15_min"] || 0} 
-          delay={0.1}
-        />
-        <PredictionCard 
-          time="30 Minutes" 
-          prob={latestData?.forecast.probabilities["30_min"] || 0} 
-          delay={0.2}
-        />
-      </div>
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 flex-1">
+        {/* Left Column: 3D Sun & Summary */}
+        <div className="lg:col-span-5 flex flex-col gap-6">
+          <div className="glass-panel rounded-2xl relative overflow-hidden h-[400px] border border-plasma-blue/20 glow-panel">
+            <div className="absolute top-4 left-4 z-10 flex items-center gap-2 px-3 py-1 bg-black/60 backdrop-blur-md rounded-full border border-white/10">
+              <Orbit size={14} className="text-plasma-blue" />
+              <span className="text-xs font-mono text-star-white">Aditya-L1 View</span>
+            </div>
+            <SunScene />
+          </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="glass-panel p-6 rounded-2xl">
-          <h2 className="font-orbitron text-lg font-semibold text-star-white mb-4 flex items-center gap-2">
-            <Zap className="text-corona-gold" size={20} /> Precursor Signal Analysis
+          <div className="glass-panel p-6 rounded-2xl flex-1">
+            <h2 className="font-orbitron text-lg font-semibold text-star-white mb-4 flex items-center gap-2">
+              <Zap className="text-corona-gold" size={20} /> AI Synthesis Report
+            </h2>
+            {loading ? (
+              <div className="animate-pulse space-y-3">
+                <div className="h-4 bg-white/10 rounded w-3/4"></div>
+                <div className="h-4 bg-white/10 rounded w-full"></div>
+                <div className="h-4 bg-white/10 rounded w-5/6"></div>
+              </div>
+            ) : error ? (
+              <div className="flex items-center gap-2 text-flare-red">
+                <AlertTriangle size={16} />
+                <span className="text-sm">Backend unreachable. Start the backend server.</span>
+              </div>
+            ) : (
+              <div>
+                <p className="text-star-white/80 leading-relaxed text-sm">
+                  {forecast?.summary}
+                </p>
+                {forecast?.summary?.includes("unavailable") && (
+                  <div className="mt-4 p-3 rounded-lg bg-yellow-500/5 border border-yellow-500/20 flex items-start gap-2">
+                    <AlertTriangle size={14} className="text-yellow-400 mt-0.5 flex-shrink-0" />
+                    <p className="text-xs text-yellow-400/80">Live AI analysis requires valid API keys. Add them to <code className="font-mono">.env</code> and restart the backend.</p>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Right Column: Dynamic 12-Hour Bar Chart */}
+        <div className="lg:col-span-7 glass-panel p-6 rounded-2xl flex flex-col">
+          <h2 className="font-orbitron text-lg font-semibold text-star-white mb-2 flex items-center gap-2">
+            <TrendingUp className="text-aurora-green" size={20} /> 12-Hour Probability Matrix
           </h2>
-          <div className="space-y-4">
-            <InsightRow label="Rise Rate Anomaly" value="Detected" active={true} />
-            <InsightRow label="Spectral Hardening" value="Normal" active={false} />
-            <InsightRow label="X-Ray Burstiness" value="High" active={true} />
-            <InsightRow label="Baseline Flux Trend" value="Stable" active={false} />
-          </div>
-        </div>
+          <p className="text-sm text-star-white/50 mb-8">Hourly flare probability (%) and predicted maximum severity class.</p>
 
-        <div className="glass-panel p-6 rounded-2xl">
-          <h2 className="font-orbitron text-lg font-semibold text-star-white mb-4">Model Attention Heatmap</h2>
-          <p className="text-sm text-star-white/60 mb-4">Indicates which temporal segments the AI is focusing on for its prediction.</p>
-          <div className="flex gap-1 h-32 items-end border-b border-l border-white/10 pb-1 pl-1">
-            {heatmapData.map((val, i) => {
-              const maxVal = Math.max(...heatmapData, 0.001); // avoid division by zero
-              const normalizedHeight = (val / maxVal) * 100;
-              return (
-                <motion.div 
-                  key={i}
-                  className="flex-1 bg-plasma-blue rounded-t-sm"
-                  initial={{ height: 0 }}
-                  animate={{ height: `${normalizedHeight}%` }}
-                  transition={{ duration: 0.5, delay: i * 0.05 }}
-                  style={{ opacity: 0.3 + (val / maxVal) * 0.7 }}
-                />
-              );
-            })}
-          </div>
-          <div className="flex justify-between text-xs text-star-white/40 mt-2">
-            <span>T-60 min</span>
-            <span>Current</span>
+          <div className="flex-1 flex flex-col justify-end min-h-[400px] relative">
+            {loading ? (
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="w-10 h-10 border-2 border-plasma-blue border-t-transparent rounded-full animate-spin" />
+              </div>
+            ) : error ? (
+              <div className="absolute inset-0 flex items-center justify-center text-flare-red/60 text-sm font-mono">
+                [ API OFFLINE - FALLBACK FAILED ]
+              </div>
+            ) : (
+              <div className="flex items-end justify-between h-full gap-2 px-2">
+                {forecast?.hourly_forecast.map((hourData, i) => {
+                  const prob = hourData.flare_probability_percent;
+                  const isHigh = prob > 50;
+                  const isMed = prob > 20 && prob <= 50;
+                  
+                  const barColor = isHigh ? 'bg-flare-red' : isMed ? 'bg-solar-orange' : 'bg-plasma-blue';
+                  const glowColor = isHigh ? 'rgba(255,45,85,0.3)' : isMed ? 'rgba(255,107,53,0.3)' : 'rgba(0,212,255,0.3)';
+
+                  return (
+                    <div key={i} className="flex flex-col items-center flex-1 group">
+                      {/* Tooltip on hover */}
+                      <div className="opacity-0 group-hover:opacity-100 transition-opacity mb-2 bg-black/80 border border-white/10 rounded p-2 text-center absolute -mt-16 pointer-events-none z-20 w-32 shadow-xl">
+                        <div className="text-xs text-star-white/70">Risk Class</div>
+                        <div className={`font-orbitron font-bold text-lg ${isHigh ? 'text-flare-red' : isMed ? 'text-solar-orange' : 'text-aurora-green'}`}>
+                          {hourData.class_risk}-Class
+                        </div>
+                        <div className="text-[10px] text-star-white/40 mt-1 font-mono">{hourData.predicted_flux} W/m²</div>
+                      </div>
+
+                      {/* Bar */}
+                      <div className="w-full relative flex justify-center h-[300px] items-end">
+                        <motion.div 
+                          className={`w-full max-w-[40px] rounded-t-md ${barColor} relative overflow-hidden`}
+                          style={{ boxShadow: `0 0 15px ${glowColor}` }}
+                          initial={{ height: 0 }}
+                          animate={{ height: `${prob}%` }}
+                          transition={{ duration: 1, delay: i * 0.05, ease: "easeOut" }}
+                        >
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent"></div>
+                        </motion.div>
+                      </div>
+
+                      {/* Percentage */}
+                      <div className="text-xs font-mono font-bold text-star-white mt-3 mb-1">
+                        {prob}%
+                      </div>
+                      
+                      {/* Hour Label */}
+                      <div className="text-[10px] text-star-white/40 font-mono">
+                        +{hourData.hour}h
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         </div>
       </div>
-    </div>
-  );
-}
-
-function PredictionCard({ time, prob, delay }: { time: string, prob: number, delay: number }) {
-  const percent = Math.round(prob * 100);
-  let color = "text-aurora-green";
-  let bgColor = "bg-aurora-green";
-  
-  if (percent >= 75) {
-    color = "text-flare-red";
-    bgColor = "bg-flare-red";
-  } else if (percent >= 40) {
-    color = "text-solar-orange";
-    bgColor = "bg-solar-orange";
-  }
-
-  return (
-    <motion.div 
-      initial={{ opacity: 0, scale: 0.95 }}
-      animate={{ opacity: 1, scale: 1 }}
-      transition={{ delay }}
-      className="glass-panel p-6 rounded-2xl border-t border-t-white/10 flex flex-col justify-between h-48"
-    >
-      <div className="flex justify-between items-start">
-        <h3 className="font-orbitron font-semibold text-star-white/80 flex items-center gap-2">
-          <Clock size={16} /> {time}
-        </h3>
-        <span className="text-xs px-2 py-1 bg-white/5 rounded text-white/50">Probability</span>
-      </div>
-      
-      <div>
-        <div className={`text-5xl font-mono font-bold ${color} mb-3`}>
-          {percent}%
-        </div>
-        <div className="w-full h-2 bg-black/40 rounded-full overflow-hidden">
-          <motion.div 
-            className={`h-full ${bgColor}`}
-            initial={{ width: 0 }}
-            animate={{ width: `${percent}%` }}
-            transition={{ duration: 1, ease: "easeOut" }}
-          />
-        </div>
-      </div>
-    </motion.div>
-  );
-}
-
-function InsightRow({ label, value, active }: { label: string, value: string, active: boolean }) {
-  return (
-    <div className="flex justify-between items-center py-3 border-b border-white/5 last:border-0">
-      <span className="text-star-white/80">{label}</span>
-      <span className={`px-3 py-1 rounded text-sm font-medium ${active ? 'bg-orange-500/20 text-solar-orange border border-orange-500/30' : 'bg-white/5 text-star-white/50'}`}>
-        {value}
-      </span>
     </div>
   );
 }

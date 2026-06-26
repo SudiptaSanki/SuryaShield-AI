@@ -1,9 +1,11 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { usePathname } from "next/navigation";
 
 export default function SpaceBackground() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const pathname = usePathname();
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -84,10 +86,24 @@ export default function SpaceBackground() {
     };
   }, []);
 
+  let bgImage = "url('/landing_bg.png')";
+  if (pathname.includes("dashboard")) bgImage = "url('/dashboard_bg.png')";
+  if (pathname.includes("impact")) bgImage = "url('/impact_bg.png')";
+  if (pathname.includes("history")) bgImage = "url('/history_bg.png')";
+  if (pathname.includes("forecast")) bgImage = "url('/forecast_bg.png')";
+
   return (
-    <canvas 
-      ref={canvasRef} 
-      className="fixed top-0 left-0 w-full h-full -z-10 pointer-events-none"
-    />
+    <div className="fixed inset-0 w-full h-full -z-20">
+      <div 
+        className="absolute inset-0 bg-cover bg-center bg-no-repeat z-0"
+        style={{ backgroundImage: bgImage }}
+      >
+        <div className="absolute inset-0 bg-black/70"></div>
+      </div>
+      <canvas 
+        ref={canvasRef} 
+        className="absolute inset-0 w-full h-full z-10 pointer-events-none mix-blend-screen"
+      />
+    </div>
   );
 }

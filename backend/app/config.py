@@ -22,6 +22,7 @@ class Settings(BaseSettings):
     # API Keys (optional — used for LLM-powered features)
     GROQ_API_KEY: Optional[str] = None
     GEMINI_API_KEY: Optional[str] = None
+    GEMINI_API_KEY_FALLBACK: Optional[str] = None
     
     class Config:
         case_sensitive = True
