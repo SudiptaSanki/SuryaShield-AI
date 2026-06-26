@@ -7,7 +7,7 @@ import { motion } from "framer-motion";
 export default function ForecastPage() {
   const { latestData } = useWebSocket();
 
-  const mockHeatmap = Array.from({ length: 12 }, () => Math.random());
+  const heatmapData = latestData?.forecast.attention_weights || Array.from({ length: 15 }, () => 0.1);
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 relative z-10">
@@ -53,7 +53,7 @@ export default function ForecastPage() {
           <h2 className="font-orbitron text-lg font-semibold text-star-white mb-4">Model Attention Heatmap</h2>
           <p className="text-sm text-star-white/60 mb-4">Indicates which temporal segments the AI is focusing on for its prediction.</p>
           <div className="flex gap-1 h-32 items-end border-b border-l border-white/10 pb-1 pl-1">
-            {mockHeatmap.map((val, i) => (
+            {heatmapData.map((val, i) => (
               <motion.div 
                 key={i}
                 className="flex-1 bg-plasma-blue rounded-t-sm"
