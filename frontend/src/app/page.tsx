@@ -1,8 +1,16 @@
 "use client";
 
-import { Canvas } from "@react-three/fiber";
-import { OrbitControls } from "@react-three/drei";
-import SunModel from "@/components/three/SunModel";
+import dynamic from "next/dynamic";
+
+// Three.js components MUST be loaded client-side only — they crash during SSR
+const Scene = dynamic(() => import("@/components/three/SunScene"), { 
+  ssr: false,
+  loading: () => (
+    <div className="w-full h-full flex items-center justify-center">
+      <div className="w-24 h-24 rounded-full bg-gradient-to-br from-solar-orange to-corona-gold animate-pulse shadow-[0_0_60px_rgba(255,107,53,0.6)]" />
+    </div>
+  )
+});
 
 export default function Home() {
   return (
@@ -34,18 +42,9 @@ export default function Home() {
 
         {/* 3D Sun Canvas */}
         <div className="w-full h-[400px] lg:h-[600px] flex-1 order-1 lg:order-2 relative z-0">
-          <Canvas camera={{ position: [0, 0, 8], fov: 45 }}>
-            <ambientLight intensity={0.1} />
-            <SunModel scale={1.2} />
-            <OrbitControls 
-              enableZoom={false} 
-              enablePan={false}
-              autoRotate
-              autoRotateSpeed={0.5}
-            />
-          </Canvas>
+          <Scene />
           
-          {/* Decorative elements around the sun */}
+          {/* Decorative orbit rings */}
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[300px] h-[300px] lg:w-[500px] lg:h-[500px] border border-white/5 rounded-full -z-10"></div>
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[450px] h-[450px] lg:w-[700px] lg:h-[700px] border border-white/5 rounded-full -z-10 border-dashed"></div>
         </div>
