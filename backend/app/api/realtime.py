@@ -6,7 +6,6 @@ from ..data.noaa_fetcher import noaa_fetcher
 from ..data.preprocessor import preprocess_stream
 from ..data.feature_engine import prepare_model_input
 from ..models.inference import inference_engine
-from ..services.alert_manager import alert_manager
 from ..services.risk_assessor import get_risk_level, calculate_risk_score
 from datetime import datetime
 
@@ -33,7 +32,7 @@ class ConnectionManager:
 
 manager = ConnectionManager()
 
-# Mock historical buffers for preprocessing
+# Historical buffers for preprocessing
 history_solexs = []
 history_helios = []
 
@@ -64,7 +63,7 @@ async def websocket_endpoint(websocket: WebSocket):
                     history_solexs.pop(0)
                     history_helios.pop(0)
                     
-            # We need at least some history to preprocess, if not enough we use dummy history
+            # We need at least 60 points of history to preprocess; if not enough, pad with the latest value
             temp_history_s = history_solexs if len(history_solexs) >= 60 else ([data_point['solexs_flux']] * 60) + history_solexs
             temp_history_h = history_helios if len(history_helios) >= 60 else ([data_point['helios_flux']] * 60) + history_helios
             
@@ -73,11 +72,8 @@ async def websocket_endpoint(websocket: WebSocket):
             model_input = prepare_model_input(s_norm, h_norm)
             prediction = inference_engine.predict(model_input)
             
-            # Check for AI alerts based on prediction
-            ai_alert = alert_manager.check_and_generate_alerts(prediction)
-            
-            # If NOAA has a real alert, use that, otherwise use our AI alert
-            final_alert = data_point['alert'] if data_point['alert'] else ai_alert
+            # Only show alerts from the real NOAA feed — no AI-generated fake alerts
+            final_alert = data_point['alert']
             
             # Calculate current risk score
             risk_score = calculate_risk_score(prediction['predicted_class'], prediction['probabilities']['5_min'])
