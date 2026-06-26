@@ -18,7 +18,12 @@ export default function DashboardPage() {
           <h1 className="font-orbitron text-3xl font-bold text-star-white flex items-center gap-3">
             <Activity className="text-plasma-blue" /> Live Solar Dashboard
           </h1>
-          <p className="text-star-white/60 mt-1">Real-time Aditya-L1 X-ray Observatory Data</p>
+          <p className="text-star-white/60 mt-1">
+            Real-time telemetry powered by{" "}
+            <a href="https://www.swpc.noaa.gov/" target="_blank" rel="noopener noreferrer" className="text-plasma-blue/80 hover:text-plasma-blue underline transition-colors">
+              NOAA Space Weather Prediction Center (SWPC)
+            </a>
+          </p>
         </div>
         <LiveIndicator isConnected={isConnected} />
       </div>
@@ -30,10 +35,15 @@ export default function DashboardPage() {
       )}
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 mb-6">
-        <div className="lg:col-span-3 glass-panel rounded-2xl p-6 relative overflow-hidden">
+        <div className="lg:col-span-3 glass-panel rounded-2xl p-6 relative overflow-hidden flex flex-col">
           <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-plasma-blue to-solar-orange"></div>
-          <h2 className="font-orbitron text-lg font-semibold text-star-white mb-4">X-Ray Flux Monitor</h2>
-          <div className="h-[400px]">
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="font-orbitron text-lg font-semibold text-star-white">X-Ray Flux Monitor</h2>
+            <a href="https://www.swpc.noaa.gov/products/goes-x-ray-flux" target="_blank" rel="noopener noreferrer" className="text-xs text-star-white/40 hover:text-plasma-blue transition-colors flex items-center gap-1">
+              Source: GOES-18 Satellite ↗
+            </a>
+          </div>
+          <div className="h-[400px] flex-1">
             <XRayFluxChart data={dataHistory} />
           </div>
         </div>
