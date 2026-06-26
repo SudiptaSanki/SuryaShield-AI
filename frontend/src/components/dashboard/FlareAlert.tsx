@@ -37,9 +37,11 @@ export default function FlareAlert({ alert }: { alert: Alert }) {
             <h3 className={`text-xl font-orbitron font-bold tracking-wide ${titleColor} mb-1`}>
               {alert.severity} SPACE WEATHER WARNING
             </h3>
-            <span className="font-mono text-sm bg-black/30 px-2 py-1 rounded text-white/80 border border-white/10">
-              T - {alert.lead_time_minutes} MIN
-            </span>
+            {alert.lead_time_minutes > 0 && (
+              <span className="font-mono text-sm bg-black/30 px-2 py-1 rounded text-white/80 border border-white/10">
+                T - {alert.lead_time_minutes} MIN
+              </span>
+            )}
           </div>
           <p className="text-white/90 font-medium text-lg mb-3">
             {alert.message}

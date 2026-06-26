@@ -1,123 +1,135 @@
 "use client";
 
-import { useState, useMemo } from "react";
-import { Search, Database, Calendar, X, TrendingUp, Clock, Zap } from "lucide-react";
+import { useState, useEffect, useMemo } from "react";
+import { Search, Database, Calendar, X, TrendingUp, Clock, Zap, RefreshCw, Satellite, AlertTriangle } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
-const MOCK_HISTORY = [
-  {
-    id: "FL-2023-112A", date: "2023-12-14", class: "X2.8", peakTime: "17:02 UTC",
-    duration: "45 min", impact: "High",
-    peakFlux: "2.8e-4 W/m²", riseTime: "12 min", decayTime: "33 min",
-    location: "S22W07", associatedCME: "Yes (Halo CME)",
-    description: "Major X2.8 flare from Active Region AR3514. Caused R3 radio blackout on sunlit side of Earth. Associated halo CME reached Earth in 36 hours, triggering G3 geomagnetic storm."
-  },
-  {
-    id: "FL-2024-045C", date: "2024-02-22", class: "X6.3", peakTime: "22:34 UTC",
-    duration: "62 min", impact: "Extreme",
-    peakFlux: "6.3e-4 W/m²", riseTime: "8 min", decayTime: "54 min",
-    location: "N15E25", associatedCME: "Yes (Partial Halo)",
-    description: "Extreme X6.3 flare — the strongest of Solar Cycle 25 at the time. Caused R3-R4 radio blackout. HF radio communication disrupted across the Pacific for over 1 hour."
-  },
-  {
-    id: "FL-2024-188B", date: "2024-05-10", class: "X5.8", peakTime: "01:23 UTC",
-    duration: "55 min", impact: "Extreme",
-    peakFlux: "5.8e-4 W/m²", riseTime: "10 min", decayTime: "45 min",
-    location: "S17W90", associatedCME: "Yes (Halo CME)",
-    description: "Part of the historic May 2024 solar storm sequence. Multiple X-class flares in 48 hours produced the strongest geomagnetic storm since 2003. Aurora visible at unusually low latitudes."
-  },
-  {
-    id: "FL-2024-201A", date: "2024-06-08", class: "M9.7", peakTime: "14:15 UTC",
-    duration: "30 min", impact: "Moderate",
-    peakFlux: "9.7e-5 W/m²", riseTime: "6 min", decayTime: "24 min",
-    location: "N12W45", associatedCME: "No",
-    description: "Strong M-class flare with rapid rise phase. Brief R2 radio blackout. No associated CME detected. Minor GPS positioning degradation reported in equatorial regions."
-  },
-  {
-    id: "FL-2024-210D", date: "2024-08-14", class: "X1.1", peakTime: "06:40 UTC",
-    duration: "38 min", impact: "High",
-    peakFlux: "1.1e-4 W/m²", riseTime: "14 min", decayTime: "24 min",
-    location: "S08E68", associatedCME: "Yes (Partial Halo)",
-    description: "Moderate X-class flare from a newly emerging active region. R3 radio blackout detected. Associated CME was Earth-directed but arrived with weakened impact."
-  },
-  {
-    id: "FL-2024-295A", date: "2024-10-01", class: "X7.1", peakTime: "03:12 UTC",
-    duration: "70 min", impact: "Extreme",
-    peakFlux: "7.1e-4 W/m²", riseTime: "9 min", decayTime: "61 min",
-    location: "N20W30", associatedCME: "Yes (Full Halo CME)",
-    description: "Exceptional X7.1 event from AR3842. Triggered G4 geomagnetic storm. Power grid operators in Scandinavia and Canada activated protective protocols. Airline polar routes diverted."
-  },
-  {
-    id: "FL-2025-032B", date: "2025-02-01", class: "M4.2", peakTime: "09:55 UTC",
-    duration: "22 min", impact: "Moderate",
-    peakFlux: "4.2e-5 W/m²", riseTime: "5 min", decayTime: "17 min",
-    location: "S05W12", associatedCME: "No",
-    description: "Moderate M4.2 flare. Brief R1-R2 radio blackout over the Indian Ocean region. No significant geomagnetic activity followed."
-  },
-  {
-    id: "FL-2025-110C", date: "2025-04-20", class: "X3.4", peakTime: "19:48 UTC",
-    duration: "48 min", impact: "High",
-    peakFlux: "3.4e-4 W/m²", riseTime: "11 min", decayTime: "37 min",
-    location: "N08W55", associatedCME: "Yes (Partial Halo)",
-    description: "Strong X3.4 flare detected by Aditya-L1 SoLEXS and HEL1OS instruments. SuryaShield AI issued a 12-minute advance warning. R3 radio blackout confirmed."
-  },
-];
+const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8000";
 
 interface FlareEvent {
-  id: string; date: string; class: string; peakTime: string;
-  duration: string; impact: string; peakFlux: string;
-  riseTime: string; decayTime: string; location: string;
-  associatedCME: string; description: string;
+  id: string;
+  date: string;
+  class: string;
+  beginClass: string;
+  endClass: string;
+  peakTime: string;
+  duration: string;
+  impact: string;
+  peakFlux: string;
+  riseTime: string;
+  decayTime: string;
+  satellite: string;
+  associatedCME: string;
+  description: string;
 }
 
+type ImpactFilter = "ALL" | "X" | "M" | "C" | "B";
+
 export default function HistoryPage() {
+  const [events, setEvents] = useState<FlareEvent[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [fetchedAt, setFetchedAt] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [dateFilter, setDateFilter] = useState("");
+  const [classFilter, setClassFilter] = useState<ImpactFilter>("ALL");
   const [selectedFlare, setSelectedFlare] = useState<FlareEvent | null>(null);
 
-  const filteredHistory = useMemo(() => {
-    return MOCK_HISTORY.filter(flare => {
-      const matchesSearch = searchQuery === "" ||
-        flare.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        flare.class.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        flare.impact.toLowerCase().includes(searchQuery.toLowerCase());
+  const fetchHistory = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const resp = await fetch(`${BACKEND_URL}/api/v1/history/flares?days=7`);
+      if (!resp.ok) throw new Error(`Server responded with ${resp.status}`);
+      const data = await resp.json();
+      setEvents(data.events || []);
+      setFetchedAt(data.fetched_at || null);
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "Failed to fetch data");
+    } finally {
+      setLoading(false);
+    }
+  };
 
-      const matchesDate = dateFilter === "" || flare.date === dateFilter;
+  useEffect(() => {
+    fetchHistory();
+  }, []);
 
-      return matchesSearch && matchesDate;
+  const filteredEvents = useMemo(() => {
+    return events.filter(f => {
+      const matchesSearch =
+        searchQuery === "" ||
+        f.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        f.class.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        f.impact.toLowerCase().includes(searchQuery.toLowerCase());
+
+      const matchesDate = dateFilter === "" || f.date === dateFilter;
+      const matchesClass = classFilter === "ALL" || f.class.startsWith(classFilter);
+
+      return matchesSearch && matchesDate && matchesClass;
     });
-  }, [searchQuery, dateFilter]);
+  }, [events, searchQuery, dateFilter, classFilter]);
+
+  const xCount = events.filter(f => f.class.startsWith("X")).length;
+  const mCount = events.filter(f => f.class.startsWith("M")).length;
+  const cCount = events.filter(f => f.class.startsWith("C")).length;
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 relative z-10">
-      <div className="mb-8">
-        <h1 className="font-orbitron text-3xl font-bold text-star-white flex items-center gap-3">
-          <Database className="text-plasma-blue" /> Historical Analysis
-        </h1>
-        <p className="text-star-white/60 mt-1">Database of previous solar flare events and their signatures</p>
+      <div className="mb-8 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+        <div>
+          <h1 className="font-orbitron text-3xl font-bold text-star-white flex items-center gap-3">
+            <Database className="text-plasma-blue" /> Historical Analysis
+          </h1>
+          <p className="text-star-white/60 mt-1">
+            Live flare event log from{" "}
+            <span className="text-plasma-blue font-mono">NOAA GOES-18 XRS</span> — last 7 days
+          </p>
+          {fetchedAt && (
+            <p className="text-star-white/40 text-xs mt-1 font-mono">
+              Data fetched at {new Date(fetchedAt).toUTCString()}
+            </p>
+          )}
+        </div>
+        <button
+          onClick={fetchHistory}
+          disabled={loading}
+          className="flex items-center gap-2 px-4 py-2 rounded-lg bg-plasma-blue/10 border border-plasma-blue/30 text-plasma-blue hover:bg-plasma-blue/20 transition-all text-sm disabled:opacity-50"
+        >
+          <RefreshCw size={14} className={loading ? "animate-spin" : ""} />
+          {loading ? "Refreshing..." : "Refresh Data"}
+        </button>
       </div>
 
       {/* Stats Row */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
         <div className="glass-panel rounded-xl p-4 text-center">
-          <div className="text-2xl font-mono font-bold text-star-white">{MOCK_HISTORY.length}</div>
-          <div className="text-xs text-star-white/50 uppercase tracking-wider mt-1">Total Events</div>
+          <div className="text-2xl font-mono font-bold text-star-white">{events.length}</div>
+          <div className="text-xs text-star-white/50 uppercase tracking-wider mt-1">Total Events (7d)</div>
         </div>
-        <div className="glass-panel rounded-xl p-4 text-center">
-          <div className="text-2xl font-mono font-bold text-flare-red">{MOCK_HISTORY.filter(f => f.class.startsWith('X')).length}</div>
+        <div className="glass-panel rounded-xl p-4 text-center cursor-pointer hover:border-red-500/30 transition-colors" onClick={() => setClassFilter(classFilter === "X" ? "ALL" : "X")}>
+          <div className="text-2xl font-mono font-bold text-flare-red">{xCount}</div>
           <div className="text-xs text-star-white/50 uppercase tracking-wider mt-1">X-Class Flares</div>
         </div>
-        <div className="glass-panel rounded-xl p-4 text-center">
-          <div className="text-2xl font-mono font-bold text-solar-orange">{MOCK_HISTORY.filter(f => f.class.startsWith('M')).length}</div>
+        <div className="glass-panel rounded-xl p-4 text-center cursor-pointer hover:border-orange-500/30 transition-colors" onClick={() => setClassFilter(classFilter === "M" ? "ALL" : "M")}>
+          <div className="text-2xl font-mono font-bold text-solar-orange">{mCount}</div>
           <div className="text-xs text-star-white/50 uppercase tracking-wider mt-1">M-Class Flares</div>
         </div>
-        <div className="glass-panel rounded-xl p-4 text-center">
-          <div className="text-2xl font-mono font-bold text-star-white">{filteredHistory.length}</div>
-          <div className="text-xs text-star-white/50 uppercase tracking-wider mt-1">Matching Results</div>
+        <div className="glass-panel rounded-xl p-4 text-center cursor-pointer hover:border-yellow-500/30 transition-colors" onClick={() => setClassFilter(classFilter === "C" ? "ALL" : "C")}>
+          <div className="text-2xl font-mono font-bold text-corona-gold">{cCount}</div>
+          <div className="text-xs text-star-white/50 uppercase tracking-wider mt-1">C-Class Flares</div>
         </div>
       </div>
 
+      {/* Source Badge */}
+      <div className="flex items-center gap-2 mb-4 px-4 py-2 rounded-lg bg-green-500/10 border border-green-500/20 w-fit">
+        <Satellite size={14} className="text-green-400" />
+        <span className="text-green-400 text-xs font-mono">LIVE DATA SOURCE: NOAA/SWPC GOES-18 XRS (Real-Time)</span>
+        <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse ml-1" />
+      </div>
+
       <div className="glass-panel p-6 rounded-2xl mb-8">
+        {/* Filters */}
         <div className="flex flex-col md:flex-row gap-4 mb-6">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-star-white/40" size={20} />
@@ -125,19 +137,38 @@ export default function HistoryPage() {
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search by ID, Class, or Impact (e.g., X5.8, Extreme)"
+              placeholder="Search by ID, Class, or Impact level..."
               className="w-full bg-black/40 border border-white/10 rounded-lg py-2.5 pl-10 pr-4 text-star-white placeholder:text-star-white/30 focus:outline-none focus:border-plasma-blue transition-colors"
             />
           </div>
-          <div className="relative w-full md:w-64">
+          <div className="relative w-full md:w-52">
             <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-star-white/40" size={20} />
             <input
               type="date"
               value={dateFilter}
               onChange={(e) => setDateFilter(e.target.value)}
               className="w-full bg-black/40 border border-white/10 rounded-lg py-2.5 pl-10 pr-4 text-star-white focus:outline-none focus:border-plasma-blue transition-colors"
-              style={{ colorScheme: 'dark' }}
+              style={{ colorScheme: "dark" }}
             />
+          </div>
+          {/* Class Quick Filter */}
+          <div className="flex gap-2">
+            {(["ALL", "X", "M", "C", "B"] as ImpactFilter[]).map((c) => (
+              <button
+                key={c}
+                onClick={() => setClassFilter(c)}
+                className={`px-3 py-2 rounded-lg text-sm font-mono font-bold border transition-all ${
+                  classFilter === c
+                    ? c === "X" ? "bg-red-500/20 border-red-500/50 text-red-400"
+                    : c === "M" ? "bg-orange-500/20 border-orange-500/50 text-orange-400"
+                    : c === "C" ? "bg-yellow-500/20 border-yellow-500/50 text-yellow-400"
+                    : "bg-plasma-blue/20 border-plasma-blue/50 text-plasma-blue"
+                    : "bg-white/5 border-white/10 text-star-white/60 hover:border-white/20"
+                }`}
+              >
+                {c}
+              </button>
+            ))}
           </div>
           {(searchQuery || dateFilter) && (
             <button
@@ -149,61 +180,92 @@ export default function HistoryPage() {
           )}
         </div>
 
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="border-b border-white/10 text-star-white/60 text-sm">
-                <th className="py-3 px-4 font-medium">Event ID</th>
-                <th className="py-3 px-4 font-medium">Date</th>
-                <th className="py-3 px-4 font-medium">Class</th>
-                <th className="py-3 px-4 font-medium">Peak Time</th>
-                <th className="py-3 px-4 font-medium">Duration</th>
-                <th className="py-3 px-4 font-medium">Recorded Impact</th>
-                <th className="py-3 px-4 font-medium"></th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredHistory.length === 0 ? (
-                <tr>
-                  <td colSpan={7} className="py-12 text-center text-star-white/40">
-                    No flare events match your search criteria.
-                  </td>
+        {/* Table */}
+        {error ? (
+          <div className="flex items-center gap-3 text-orange-400 bg-orange-500/10 border border-orange-500/20 rounded-xl p-4">
+            <AlertTriangle size={20} />
+            <div>
+              <p className="font-medium">Failed to load real-time data</p>
+              <p className="text-sm text-orange-400/70">{error} — Is the backend running on port 8000?</p>
+            </div>
+          </div>
+        ) : loading ? (
+          <div className="flex flex-col items-center justify-center py-16 gap-3">
+            <div className="w-10 h-10 border-2 border-plasma-blue border-t-transparent rounded-full animate-spin" />
+            <p className="text-star-white/50 text-sm">Fetching NOAA real-time flare data...</p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="border-b border-white/10 text-star-white/60 text-sm">
+                  <th className="py-3 px-4 font-medium">Event ID</th>
+                  <th className="py-3 px-4 font-medium">Date (UTC)</th>
+                  <th className="py-3 px-4 font-medium">Max Class</th>
+                  <th className="py-3 px-4 font-medium">Peak Time</th>
+                  <th className="py-3 px-4 font-medium">Duration</th>
+                  <th className="py-3 px-4 font-medium">Peak Flux</th>
+                  <th className="py-3 px-4 font-medium">Impact</th>
+                  <th className="py-3 px-4 font-medium"></th>
                 </tr>
-              ) : (
-                filteredHistory.map((flare, idx) => (
-                  <tr key={idx} className="border-b border-white/5 hover:bg-white/5 transition-colors">
-                    <td className="py-4 px-4 text-plasma-blue font-mono text-sm">{flare.id}</td>
-                    <td className="py-4 px-4 text-star-white/80">{flare.date}</td>
-                    <td className="py-4 px-4 font-orbitron font-bold">
-                      <span className={flare.class.startsWith('X') ? 'text-flare-red' : 'text-solar-orange'}>
-                        {flare.class}
-                      </span>
-                    </td>
-                    <td className="py-4 px-4 text-star-white/80">{flare.peakTime}</td>
-                    <td className="py-4 px-4 text-star-white/80">{flare.duration}</td>
-                    <td className="py-4 px-4">
-                      <span className={`px-2 py-1 rounded text-xs ${
-                        flare.impact === 'Extreme' ? 'bg-red-500/20 text-red-400' :
-                        flare.impact === 'High' ? 'bg-orange-500/20 text-orange-400' :
-                        'bg-yellow-500/20 text-yellow-400'
-                      }`}>
-                        {flare.impact}
-                      </span>
-                    </td>
-                    <td className="py-4 px-4 text-right">
-                      <button
-                        onClick={() => setSelectedFlare(flare)}
-                        className="text-sm text-plasma-blue hover:text-white transition-colors border border-plasma-blue/30 hover:border-plasma-blue px-3 py-1 rounded-md"
-                      >
-                        View Data
-                      </button>
+              </thead>
+              <tbody>
+                {filteredEvents.length === 0 ? (
+                  <tr>
+                    <td colSpan={8} className="py-16 text-center text-star-white/40">
+                      {events.length === 0
+                        ? "No flare events recorded in the last 7 days."
+                        : "No events match your filters. Try changing your search or class filter."}
                     </td>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+                ) : (
+                  filteredEvents.map((flare, idx) => (
+                    <motion.tr
+                      key={flare.id + idx}
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ delay: idx * 0.02 }}
+                      className="border-b border-white/5 hover:bg-white/5 transition-colors"
+                    >
+                      <td className="py-4 px-4 text-plasma-blue font-mono text-sm">{flare.id}</td>
+                      <td className="py-4 px-4 text-star-white/80 font-mono text-sm">{flare.date}</td>
+                      <td className="py-4 px-4 font-orbitron font-bold">
+                        <span className={
+                          flare.class.startsWith("X") ? "text-flare-red" :
+                          flare.class.startsWith("M") ? "text-solar-orange" :
+                          "text-corona-gold"
+                        }>
+                          {flare.class}
+                        </span>
+                      </td>
+                      <td className="py-4 px-4 text-star-white/80 font-mono text-sm">{flare.peakTime}</td>
+                      <td className="py-4 px-4 text-star-white/80 text-sm">{flare.duration}</td>
+                      <td className="py-4 px-4 text-star-white/70 font-mono text-xs">{flare.peakFlux}</td>
+                      <td className="py-4 px-4">
+                        <span className={`px-2 py-1 rounded text-xs font-medium ${
+                          flare.impact === "Extreme" ? "bg-red-500/20 text-red-400" :
+                          flare.impact === "High" ? "bg-orange-500/20 text-orange-400" :
+                          flare.impact === "Moderate" ? "bg-yellow-500/20 text-yellow-400" :
+                          "bg-blue-500/20 text-blue-400"
+                        }`}>
+                          {flare.impact}
+                        </span>
+                      </td>
+                      <td className="py-4 px-4 text-right">
+                        <button
+                          onClick={() => setSelectedFlare(flare)}
+                          className="text-sm text-plasma-blue hover:text-white transition-colors border border-plasma-blue/30 hover:border-plasma-blue px-3 py-1 rounded-md"
+                        >
+                          View Data
+                        </button>
+                      </td>
+                    </motion.tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
 
       {/* Detail Modal */}
@@ -228,7 +290,11 @@ export default function HistoryPage() {
                 <div>
                   <div className="text-xs text-plasma-blue font-mono tracking-wider mb-1">{selectedFlare.id}</div>
                   <h2 className="font-orbitron text-2xl font-bold text-star-white flex items-center gap-3">
-                    <span className={selectedFlare.class.startsWith('X') ? 'text-flare-red' : 'text-solar-orange'}>
+                    <span className={
+                      selectedFlare.class.startsWith("X") ? "text-flare-red" :
+                      selectedFlare.class.startsWith("M") ? "text-solar-orange" :
+                      "text-corona-gold"
+                    }>
                       {selectedFlare.class}
                     </span>
                     Solar Flare
@@ -251,19 +317,30 @@ export default function HistoryPage() {
                 <DetailItem icon={<TrendingUp size={16} />} label="Duration" value={selectedFlare.duration} />
                 <DetailItem icon={<TrendingUp size={16} />} label="Rise Time" value={selectedFlare.riseTime} />
                 <DetailItem icon={<TrendingUp size={16} />} label="Decay Time" value={selectedFlare.decayTime} />
-                <DetailItem icon={<Zap size={16} />} label="Location" value={selectedFlare.location} />
-                <DetailItem icon={<Zap size={16} />} label="Associated CME" value={selectedFlare.associatedCME} />
+                <DetailItem icon={<Zap size={16} />} label="Begin Class" value={selectedFlare.beginClass} />
+                <DetailItem icon={<Satellite size={16} />} label="Satellite" value={selectedFlare.satellite} />
               </div>
 
-              <div className="flex items-center gap-2 mt-2">
-                <span className="text-xs text-star-white/40">Impact Level:</span>
-                <span className={`px-3 py-1 rounded text-sm font-medium ${
-                  selectedFlare.impact === 'Extreme' ? 'bg-red-500/20 text-red-400 border border-red-500/30' :
-                  selectedFlare.impact === 'High' ? 'bg-orange-500/20 text-orange-400 border border-orange-500/30' :
-                  'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30'
-                }`}>
-                  {selectedFlare.impact}
-                </span>
+              <div className="flex items-center gap-3 mt-2 flex-wrap">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-star-white/40">Impact Level:</span>
+                  <span className={`px-3 py-1 rounded text-sm font-medium ${
+                    selectedFlare.impact === "Extreme" ? "bg-red-500/20 text-red-400 border border-red-500/30" :
+                    selectedFlare.impact === "High" ? "bg-orange-500/20 text-orange-400 border border-orange-500/30" :
+                    selectedFlare.impact === "Moderate" ? "bg-yellow-500/20 text-yellow-400 border border-yellow-500/30" :
+                    "bg-blue-500/20 text-blue-400 border border-blue-500/30"
+                  }`}>
+                    {selectedFlare.impact}
+                  </span>
+                </div>
+                <a
+                  href="https://www.swpc.noaa.gov/products/goes-x-ray-flux"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-xs text-plasma-blue/70 hover:text-plasma-blue underline transition-colors"
+                >
+                  View on NOAA SWPC ↗
+                </a>
               </div>
             </motion.div>
           </motion.div>
@@ -273,7 +350,7 @@ export default function HistoryPage() {
   );
 }
 
-function DetailItem({ icon, label, value }: { icon: React.ReactNode, label: string, value: string }) {
+function DetailItem({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
   return (
     <div className="bg-black/30 border border-white/5 rounded-lg p-3">
       <div className="flex items-center gap-1.5 text-star-white/50 text-xs mb-1">{icon} {label}</div>

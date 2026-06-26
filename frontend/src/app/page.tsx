@@ -50,6 +50,21 @@ export default function Home() {
         </div>
       </section>
 
+      {/* About Section */}
+      <section className="py-20 px-8 bg-black/50 border-t border-white/10 relative z-10">
+        <div className="max-w-4xl mx-auto text-center">
+          <h2 className="font-orbitron text-3xl font-bold text-plasma-blue mb-6">About SuryaShield AI</h2>
+          <div className="text-star-white/80 text-lg leading-relaxed space-y-4">
+            <p>
+              Solar flares are sudden bursts of energy released from the Sun that can disrupt satellites, GPS, radio communication, power grids, and space missions. Existing monitoring systems often require experts to interpret large volumes of solar X-ray data, and timely forecasting remains challenging.
+            </p>
+            <p>
+              SURYASHIELD AI solves this problem by combining Soft X-ray (SoLEXS) and Hard X-ray (HEL1OS) observations from Aditya-L1 to provide AI-powered real-time nowcasting and short-term forecasting of solar flares. The platform transforms complex scientific data into clear, actionable insights for researchers, students, and space-weather analysts.
+            </p>
+          </div>
+        </div>
+      </section>
+
       {/* Feature Section */}
       <section className="py-20 px-8 bg-space-deep/80 border-t border-white/10 relative z-10">
         <div className="max-w-7xl mx-auto">
