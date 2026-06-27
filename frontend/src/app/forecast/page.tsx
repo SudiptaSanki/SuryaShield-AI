@@ -4,6 +4,8 @@ import { useState, useEffect } from "react";
 import { BrainCircuit, Orbit, Zap, TrendingUp, AlertTriangle, RefreshCw } from "lucide-react";
 import { motion } from "framer-motion";
 import SunScene from "@/components/three/SunScene";
+import SyncStatus from "@/components/dashboard/SyncStatus";
+import { BASELINE_FORECAST } from "@/data/baselineData";
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8000";
 
@@ -20,9 +22,11 @@ interface LLMForecast {
 }
 
 export default function ForecastPage() {
-  const [forecast, setForecast] = useState<LLMForecast | null>(null);
-  const [loading, setLoading] = useState(true);
+  // Start with baseline data so page renders instantly
+  const [forecast, setForecast] = useState<LLMForecast>(BASELINE_FORECAST);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isLive, setIsLive] = useState(false);
 
   const fetchForecast = async () => {
     setLoading(true);
@@ -32,14 +36,17 @@ export default function ForecastPage() {
       if (!resp.ok) throw new Error("Failed to fetch LLM forecast");
       const data = await resp.json();
       setForecast(data);
+      setIsLive(true);
     } catch (e: any) {
       setError(e.message);
+      // Keep showing baseline data on error — don't blank the page
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
+    // Fetch in background — baseline data is already visible
     fetchForecast();
   }, []);
 
@@ -52,14 +59,17 @@ export default function ForecastPage() {
           </h1>
           <p className="text-star-white/60 mt-1">12-Hour Predictive Modeling via Groq LLM & Gemini</p>
         </div>
-        <button
-          onClick={fetchForecast}
-          disabled={loading}
-          className="flex items-center gap-2 px-4 py-2 rounded-lg bg-plasma-blue/10 border border-plasma-blue/30 text-plasma-blue hover:bg-plasma-blue/20 transition-all text-sm disabled:opacity-50"
-        >
-          <RefreshCw size={14} className={loading ? "animate-spin" : ""} />
-          {loading ? "Generating..." : "Refresh Forecast"}
-        </button>
+        <div className="flex items-center gap-3 flex-wrap">
+          <SyncStatus isLive={isLive} label="Fetching AI forecast" />
+          <button
+            onClick={fetchForecast}
+            disabled={loading}
+            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-plasma-blue/10 border border-plasma-blue/30 text-plasma-blue hover:bg-plasma-blue/20 transition-all text-sm disabled:opacity-50"
+          >
+            <RefreshCw size={14} className={loading ? "animate-spin" : ""} />
+            {loading ? "Generating..." : "Refresh Forecast"}
+          </button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 flex-1">
@@ -77,30 +87,17 @@ export default function ForecastPage() {
             <h2 className="font-orbitron text-lg font-semibold text-star-white mb-4 flex items-center gap-2">
               <Zap className="text-corona-gold" size={20} /> AI Synthesis Report
             </h2>
-            {loading ? (
-              <div className="animate-pulse space-y-3">
-                <div className="h-4 bg-white/10 rounded w-3/4"></div>
-                <div className="h-4 bg-white/10 rounded w-full"></div>
-                <div className="h-4 bg-white/10 rounded w-5/6"></div>
-              </div>
-            ) : error ? (
-              <div className="flex items-center gap-2 text-flare-red">
-                <AlertTriangle size={16} />
-                <span className="text-sm">Backend unreachable. Start the backend server.</span>
-              </div>
-            ) : (
-              <div>
-                <p className="text-star-white/80 leading-relaxed text-sm">
-                  {forecast?.summary}
-                </p>
-                {forecast?.summary?.includes("unavailable") && (
-                  <div className="mt-4 p-3 rounded-lg bg-yellow-500/5 border border-yellow-500/20 flex items-start gap-2">
-                    <AlertTriangle size={14} className="text-yellow-400 mt-0.5 flex-shrink-0" />
-                    <p className="text-xs text-yellow-400/80">Live AI analysis requires valid API keys. Add them to <code className="font-mono">.env</code> and restart the backend.</p>
-                  </div>
-                )}
-              </div>
-            )}
+            <div>
+              <p className="text-star-white/80 leading-relaxed text-sm">
+                {forecast?.summary}
+              </p>
+              {!isLive && (
+                <div className="mt-4 p-3 rounded-lg bg-plasma-blue/5 border border-plasma-blue/20 flex items-start gap-2">
+                  <AlertTriangle size={14} className="text-plasma-blue mt-0.5 flex-shrink-0" />
+                  <p className="text-xs text-plasma-blue/80">Showing baseline forecast. Live AI data will load automatically when the server responds.</p>
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
@@ -112,15 +109,6 @@ export default function ForecastPage() {
           <p className="text-sm text-star-white/50 mb-8">Hourly flare probability (%) and predicted maximum severity class.</p>
 
           <div className="flex-1 flex flex-col justify-end min-h-[400px] relative">
-            {loading ? (
-              <div className="absolute inset-0 flex items-center justify-center">
-                <div className="w-10 h-10 border-2 border-plasma-blue border-t-transparent rounded-full animate-spin" />
-              </div>
-            ) : error ? (
-              <div className="absolute inset-0 flex items-center justify-center text-flare-red/60 text-sm font-mono">
-                [ API OFFLINE - FALLBACK FAILED ]
-              </div>
-            ) : (
               <div className="flex items-end justify-between h-full gap-2 px-2">
                 {forecast?.hourly_forecast.map((hourData, i) => {
                   const prob = hourData.flare_probability_percent;
@@ -167,7 +155,6 @@ export default function ForecastPage() {
                   );
                 })}
               </div>
-            )}
           </div>
         </div>
       </div>

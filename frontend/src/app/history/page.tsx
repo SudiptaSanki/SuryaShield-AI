@@ -3,6 +3,8 @@
 import { useState, useEffect, useMemo } from "react";
 import { Search, Database, Calendar, X, TrendingUp, Clock, Zap, RefreshCw, Satellite, AlertTriangle } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import SyncStatus from "@/components/dashboard/SyncStatus";
+import { BASELINE_HISTORY } from "@/data/baselineData";
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8000";
 
@@ -26,10 +28,12 @@ interface FlareEvent {
 type ImpactFilter = "ALL" | "X" | "M" | "C" | "B";
 
 export default function HistoryPage() {
-  const [events, setEvents] = useState<FlareEvent[]>([]);
-  const [loading, setLoading] = useState(true);
+  // Start with baseline data so the page renders instantly
+  const [events, setEvents] = useState<FlareEvent[]>(BASELINE_HISTORY.events);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [fetchedAt, setFetchedAt] = useState<string | null>(null);
+  const [fetchedAt, setFetchedAt] = useState<string | null>(BASELINE_HISTORY.fetched_at);
+  const [isLive, setIsLive] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [dateFilter, setDateFilter] = useState("");
   const [classFilter, setClassFilter] = useState<ImpactFilter>("ALL");
@@ -44,14 +48,17 @@ export default function HistoryPage() {
       const data = await resp.json();
       setEvents(data.events || []);
       setFetchedAt(data.fetched_at || null);
+      setIsLive(true);
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "Failed to fetch data");
+      // Keep showing baseline data on error
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
+    // Fetch in background — baseline data is already visible
     fetchHistory();
   }, []);
 
@@ -91,14 +98,17 @@ export default function HistoryPage() {
             </p>
           )}
         </div>
-        <button
-          onClick={fetchHistory}
-          disabled={loading}
-          className="flex items-center gap-2 px-4 py-2 rounded-lg bg-plasma-blue/10 border border-plasma-blue/30 text-plasma-blue hover:bg-plasma-blue/20 transition-all text-sm disabled:opacity-50"
-        >
-          <RefreshCw size={14} className={loading ? "animate-spin" : ""} />
-          {loading ? "Refreshing..." : "Refresh Data"}
-        </button>
+        <div className="flex items-center gap-3 flex-wrap">
+          <SyncStatus isLive={isLive} label="Syncing NOAA flare records" />
+          <button
+            onClick={fetchHistory}
+            disabled={loading}
+            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-plasma-blue/10 border border-plasma-blue/30 text-plasma-blue hover:bg-plasma-blue/20 transition-all text-sm disabled:opacity-50"
+          >
+            <RefreshCw size={14} className={loading ? "animate-spin" : ""} />
+            {loading ? "Refreshing..." : "Refresh Data"}
+          </button>
+        </div>
       </div>
 
       {/* Stats Row */}
@@ -181,20 +191,6 @@ export default function HistoryPage() {
         </div>
 
         {/* Table */}
-        {error ? (
-          <div className="flex items-center gap-3 text-orange-400 bg-orange-500/10 border border-orange-500/20 rounded-xl p-4">
-            <AlertTriangle size={20} />
-            <div>
-              <p className="font-medium">Failed to load real-time data</p>
-              <p className="text-sm text-orange-400/70">{error} — Is the backend running on port 8000?</p>
-            </div>
-          </div>
-        ) : loading ? (
-          <div className="flex flex-col items-center justify-center py-16 gap-3">
-            <div className="w-10 h-10 border-2 border-plasma-blue border-t-transparent rounded-full animate-spin" />
-            <p className="text-star-white/50 text-sm">Fetching NOAA real-time flare data...</p>
-          </div>
-        ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
@@ -265,7 +261,6 @@ export default function HistoryPage() {
               </tbody>
             </table>
           </div>
-        )}
       </div>
 
       {/* Detail Modal */}
